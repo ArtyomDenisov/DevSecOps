@@ -2,13 +2,13 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
 
-# Копируем go.mod (и go.sum, если он есть, не вызывая ошибку)
-COPY go.mod go.sum* ./
-
-# Скачиваем зависимости только если они описаны в go.mod
-RUN if [ -f go.sum ]; then go mod download; fi
-
+# 1. Копируем исходный код приложения и файлы модулей целиком
 COPY . .
+
+# 2. go mod tidy автоматически скачает нужные библиотеки и сам создаст go.sum прямо внутри контейнера, если его нет
+RUN go mod tidy
+
+# 3. Сборка статически скомпилированного бинарника без CGO
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
 # --- Этап Финального Образа ---
