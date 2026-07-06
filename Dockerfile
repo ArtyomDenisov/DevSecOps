@@ -1,11 +1,14 @@
 # --- Этап Сборки (Builder) ---
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+
+# Копируем go.mod (и go.sum, если он есть, не вызывая ошибку)
+COPY go.mod go.sum* ./
+
+# Скачиваем зависимости только если они описаны в go.mod
+RUN if [ -f go.sum ]; then go mod download; fi
+
 COPY . .
-# Сборка статически скомпилированного бинарника без CGO
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
 # --- Этап Финального Образа ---
