@@ -2,14 +2,9 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
 
-# 1. Копируем исходный код приложения и файлы модулей целиком
-COPY . .
+COPY main.go .
 
-# 2. go mod tidy автоматически скачает нужные библиотеки и сам создаст go.sum прямо внутри контейнера, если его нет
-RUN go mod tidy
-
-# 3. Сборка статически скомпилированного бинарника без CGO
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=off go build -o main main.go
 
 # --- Этап Финального Образа ---
 # а. Минимальный базовый образ (distroless или alpine)
