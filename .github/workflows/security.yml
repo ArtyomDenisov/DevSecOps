@@ -1,0 +1,54 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  scan:
+    name: Build and Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Сканирование исходного кода на уязвимости (SAST)
+      - name: Run Trivy vulnerability scanner (Repository)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      # Сборка локального образа для проверки
+      - name: Build local Docker image
+        run: docker build -t secure-app:test .
+
+      # Сканирование Docker-образа на уязвимости
+      - name: Run Trivy vulnerability scanner (Image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'secure-app:test'
+          image-type: 'image'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+          # Авторизация в GitHub Container Registry с использованием встроенного токена
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Сборка и безопасная публикация
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}/secure-web-app:latest
